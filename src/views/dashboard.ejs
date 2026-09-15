@@ -1,0 +1,102 @@
+<%- include('partials/header') %>
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="hint">
+      Centralized CPE control: <a href="/cpe">CPE Manager (both portals, live status &amp; credentials)</a> &bull;
+      Direct: <a href="http://192.168.18.1" target="_blank" rel="noopener">Indoor (192.168.18.1)</a> &bull;
+      <a href="http://192.168.254.1" target="_blank" rel="noopener">Outdoor (192.168.254.1)</a>
+    </p>
+  </div>
+  <a class="cta" href="/payments/new">+ Add Payment</a>
+</div>
+
+<div class="cards">
+  <div class="card"><span class="label">Active Customers</span><span class="value"><%= overview.activeCount %></span></div>
+  <div class="card <%= overview.expiringSoon > 0 ? 'warn' : '' %>"><span class="label">Expiring &lt; 30 min</span><span class="value"><%= overview.expiringSoon %></span></div>
+  <div class="card"><span class="label">Today's Revenue</span><span class="value">KSh <%= overview.todayRevenue %></span></div>
+  <div class="card"><span class="label">Monthly Revenue</span><span class="value">KSh <%= overview.monthRevenue %></span></div>
+  <div class="card"><span class="label">Monthly Expenses</span><span class="value">KSh <%= overview.monthExpenses %></span></div>
+  <div class="card"><span class="label">Est. Monthly Profit</span><span class="value">KSh <%= overview.monthProfit %></span></div>
+  <div class="card"><span class="label">Total Customers</span><span class="value"><%= overview.totalCustomers %></span></div>
+</div>
+
+<h2>Active Connections (<%= overview.activeSubscriptions.length %>)</h2>
+<p class="hint">These devices should currently be permitted on the Airtel router.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Customer</th>
+      <th>Room</th>
+      <th>Device</th>
+      <th>MAC Address</th>
+      <th>Package</th>
+      <th>Expires (Nairobi)</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% overview.activeSubscriptions.forEach(function(s) { %>
+    <tr>
+      <td><a href="/customers/<%= s.customer_id %>"><strong><%= s.customer_name %></strong></a></td>
+      <td><%= s.room_identifier || '—' %></td>
+      <td><%= s.device_name || '—' %></td>
+      <td>
+        <% if (s.mac_address) { %>
+          <code class="mac-code" title="Copy MAC"><%= s.mac_address %></code>
+        <% } else { %>
+          <span class="muted">—</span>
+        <% } %>
+      </td>
+      <td><%= s.package_name_snapshot %></td>
+      <td><%= formatDateTime(s.expiry_time) %></td>
+      <td><a href="/payments/new?customer_id=<%= s.customer_id %>">Renew</a></td>
+    </tr>
+    <% }) %>
+    <% if (overview.activeSubscriptions.length === 0) { %>
+    <tr><td colspan="7" class="empty">No active connections right now.</td></tr>
+    <% } %>
+  </tbody>
+</table>
+
+<h2>Manual Router Action: Expired Connections (<%= overview.recentlyExpired.length %>)</h2>
+<p class="hint">
+  Subscriptions that expired in the last 48 hours without a renewal. Check that these MAC addresses are removed or blocked on your
+  <a href="http://192.168.18.1" target="_blank" rel="noopener">Airtel CPE (192.168.18.1)</a>.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Customer</th>
+      <th>Room</th>
+      <th>Device</th>
+      <th>MAC Address</th>
+      <th>Expired At (Nairobi)</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% overview.recentlyExpired.forEach(function(e) { %>
+    <tr class="row-expired">
+      <td><a href="/customers/<%= e.customer_id %>"><%= e.customer_name %></a></td>
+      <td><%= e.room_identifier || '—' %></td>
+      <td><%= e.device_name || '—' %></td>
+      <td>
+        <% if (e.mac_address) { %>
+          <code class="mac-code"><%= e.mac_address %></code>
+        <% } else { %>
+          <span class="muted">—</span>
+        <% } %>
+      </td>
+      <td><span class="text-danger"><%= formatDateTime(e.expiry_time) %></span></td>
+      <td>
+        <a href="/payments/new?customer_id=<%= e.customer_id %>">Renew</a>
+      </td>
+    </tr>
+    <% }) %>
+    <% if (overview.recentlyExpired.length === 0) { %>
+    <tr><td colspan="6" class="empty">No pending unrenewed expirations in the last 48 hours.</td></tr>
+    <% } %>
+  </tbody>
+</table>
+<%- include('partials/footer') %>

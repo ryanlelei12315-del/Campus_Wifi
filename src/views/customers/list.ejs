@@ -1,0 +1,48 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <h1>Customers (<%= customers.length %>)</h1>
+  <a class="cta" href="/customers/new">+ Add Customer</a>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Phone</th>
+      <th>Room</th>
+      <th>Device</th>
+      <th>MAC Address</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% customers.forEach(function(c) { %>
+    <tr>
+      <td><a href="/customers/<%= c.id %>"><strong><%= c.name %></strong></a></td>
+      <td><%= c.phone_number %></td>
+      <td><%= c.room_identifier || '—' %></td>
+      <td><%= c.device_name || '—' %></td>
+      <td>
+        <% if (c.mac_address) { %>
+          <code class="mac-code"><%= c.mac_address %></code>
+        <% } else { %>
+          <span class="muted">—</span>
+        <% } %>
+      </td>
+      <td>
+        <span class="badge <%= c.account_status === 'ACTIVE' ? 'badge-active' : 'badge-disabled' %>">
+          <%= c.account_status %>
+        </span>
+      </td>
+      <td>
+        <a href="/payments/new?customer_id=<%= c.id %>">Pay</a> |
+        <a href="/customers/<%= c.id %>/edit">Edit</a>
+      </td>
+    </tr>
+    <% }) %>
+    <% if (customers.length === 0) { %>
+    <tr><td colspan="7" class="empty">No customers yet. Click "+ Add Customer" to add one.</td></tr>
+    <% } %>
+  </tbody>
+</table>
+<%- include('../partials/footer') %>

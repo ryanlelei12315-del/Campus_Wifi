@@ -1,0 +1,15 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <h1>Add Customer</h1>
+  <a href="/customers">&larr; Back to Customers</a>
+</div>
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+<form action="/customers" method="post" class="form">
+  <label>Name<input type="text" name="name" value="<%= customer && customer.name || '' %>" required autofocus /></label>
+  <label>Phone number<input type="tel" name="phone_number" value="<%= customer && customer.phone_number || '' %>" required placeholder="07XXXXXXXX or +254..." /></label>
+  <label>Room / hostel identifier<input type="text" name="room_identifier" value="<%= customer && customer.room_identifier || '' %>" placeholder="e.g. Room 4B" /></label>
+  <label>Device name<input type="text" name="device_name" value="<%= customer && customer.device_name || '' %>" placeholder="e.g. Ryan's Laptop" /></label>
+  <label>MAC address (if known)<input type="text" name="mac_address" value="<%= customer && customer.mac_address || '' %>" placeholder="AA:BB:CC:DD:EE:FF" /></label>
+  <button type="submit">Save Customer</button>
+</form>
+<%- include('../partials/footer') %>

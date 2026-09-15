@@ -1,0 +1,17 @@
+<%- include('../partials/header') %>
+<h1>Packages</h1>
+<table>
+  <thead><tr><th>Name</th><th>Price</th><th>Duration (hrs)</th><th>Status</th></tr></thead>
+  <tbody>
+    <% packages.forEach(function(p) { %>
+    <tr>
+      <td><%= p.name %></td>
+      <td>KSh <%= p.price %></td>
+      <td><%= p.duration_hours %></td>
+      <td><%= p.is_active ? 'Active' : 'Disabled' %></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<p class="hint">Editing packages from the UI isn't built yet — for now, edit rows directly in the database, or re-run <code>npm run seed</code> on a fresh database.</p>
+<%- include('../partials/footer') %>

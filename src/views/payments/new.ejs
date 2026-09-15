@@ -1,0 +1,54 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <h1>Record Payment</h1>
+  <a href="/">&larr; Back to Dashboard</a>
+</div>
+<p class="hint">
+  Have the customer dial <a href="tel:*334%23">*334#</a> (tap this link on their phone) to pay via Airtel Money,
+  then ask them for the transaction confirmation code from the SMS Airtel sends you — enter it below as the
+  reference. It's the only real duplicate-payment safeguard we have without automated verification, so don't skip it.
+</p>
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+<form action="/payments" method="post" class="form">
+  <label>Customer
+    <select name="customer_id" required>
+      <option value="">Select customer…</option>
+      <% customers.forEach(function(c) { %>
+        <% const isSelected = (formData && String(formData.customer_id) === String(c.id)) || (!formData.customer_id && String(prefillCustomerId) === String(c.id)); %>
+        <option value="<%= c.id %>" <%= isSelected ? 'selected' : '' %>>
+          <%= c.name %> (<%= c.phone_number %>)
+        </option>
+      <% }) %>
+    </select>
+  </label>
+
+  <label>Package
+    <select name="package_id" id="package_id" required>
+      <option value="">Select package…</option>
+      <% packages.forEach(function(p) { %>
+        <% const isSelected = formData && String(formData.package_id) === String(p.id); %>
+        <option value="<%= p.id %>" data-price="<%= p.price %>" <%= isSelected ? 'selected' : '' %>>
+          <%= p.name %> — KSh <%= p.price %>
+        </option>
+      <% }) %>
+    </select>
+  </label>
+
+  <label>Amount received (KSh)
+    <input type="number" name="amount" id="amount" min="1" required value="<%= formData && formData.amount || '' %>" />
+  </label>
+  <label>Airtel Money transaction code
+    <input type="text" name="reference_code" required placeholder="e.g. MP240915.1234.A56789" value="<%= formData && formData.reference_code || '' %>" />
+  </label>
+
+  <button type="submit">Record Payment &amp; Activate</button>
+</form>
+
+<script>
+  // Convenience: auto-fill the amount from the package's listed price if amount is empty or package changes
+  document.getElementById('package_id').addEventListener('change', function (e) {
+    var price = e.target.selectedOptions[0] && e.target.selectedOptions[0].dataset.price;
+    if (price) document.getElementById('amount').value = price;
+  });
+</script>
+<%- include('../partials/footer') %>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/images/favicon.png" />
+  <title>Campus Wi-Fi Admin</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <% if (typeof isAuthenticated !== 'undefined' && isAuthenticated) { %>
+  <nav class="topnav">
+    <img src="/images/favicon.png" alt="campus-wifi" style="width: 32px; height: 32px;">
+    <div class="brand">Campus Wi-Fi</div>
+    <a href="/">Dashboard</a>
+    <a href="/customers">Customers</a>
+    <a href="/packages">Packages</a>
+    <a href="/cpe">CPE Manager</a>
+    <a href="/payments/new" class="cta">+ Add Payment</a>
+    <form action="/logout" method="post" class="logout-form">
+      <button type="submit">Log out</button>
+    </form>
+  </nav>
+  <% } %>
+  <main class="container">

@@ -1,0 +1,194 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1>CPE Manager</h1>
+    <p class="hint">Centralized live control — signal, throughput, connected devices, block list and restart, pulled straight from both gateways.</p>
+  </div>
+  <button type="button" class="btn-secondary" id="refresh-status">Refresh Now</button>
+</div>
+
+<div id="cpe-live"><p class="hint">Talking to the gateways…</p></div>
+
+<div class="cpe-grid">
+  <!-- OUTDOOR: signal + throughput + restart -->
+  <section class="cpe-panel" id="panel-outdoor">
+    <div class="cpe-panel-head">
+      <div>
+        <h2>Outdoor CPE <span class="muted">&middot; ZTE MC8830</span></h2>
+        <p class="hint">Upstream antenna &middot; signal &amp; throughput</p>
+      </div>
+      <span class="badge badge-disabled" id="pill-outdoor">OFFLINE</span>
+    </div>
+    <div id="outdoor-body" class="cpe-panel-body"></div>
+    <div class="cpe-panel-actions">
+      <button type="button" class="btn-danger" id="reboot-outdoor">Restart Outdoor CPE</button>
+      <span class="hint" id="reboot-msg"></span>
+    </div>
+  </section>
+
+  <!-- INDOOR: connected devices + block list -->
+  <section class="cpe-panel" id="panel-indoor">
+    <div class="cpe-panel-head">
+      <div>
+        <h2>Indoor CPE <span class="muted">&middot; Airtel Smart Hub</span></h2>
+        <p class="hint">Access control &middot; connected devices &amp; MAC block list</p>
+      </div>
+      <span class="badge badge-disabled" id="pill-indoor">OFFLINE</span>
+    </div>
+    <div id="indoor-body" class="cpe-panel-body"></div>
+  </section>
+</div>
+
+<h2>Whitelist Helper: Active MACs</h2>
+<p class="hint">Copy any MAC below straight into either portal's MAC filter / DHCP reservation list.</p>
+<table>
+  <thead>
+    <tr><th>Customer</th><th>Room</th><th>Device</th><th>MAC Address</th></tr>
+  </thead>
+  <tbody>
+    <% activeMacs.forEach(function(s) { %>
+    <tr>
+      <td><a href="/customers/<%= s.customer_id %>"><strong><%= s.customer_name %></strong></a></td>
+      <td><%= s.room_identifier || '—' %></td>
+      <td><%= s.device_name || '—' %></td>
+      <td><code class="mac-code copy-btn" data-copy="<%= s.mac_address %>" title="Click to copy"><%= s.mac_address %></code></td>
+    </tr>
+    <% }) %>
+    <% if (activeMacs.length === 0) { %>
+    <tr><td colspan="4" class="empty">No active connections.</td></tr>
+    <% } %>
+  </tbody>
+</table>
+
+<script>
+(function () {
+  var ESC = document.createElement('div');
+  function esc(s) { ESC.textContent = s == null ? '' : String(s); return ESC.innerHTML; }
+  function fmtRate(v) {
+    if (v >= 1) return v.toFixed(2) + ' Mbps';
+    if (v >= 0.001) return (v * 1000).toFixed(0) + ' Kbps';
+    return '0 Kbps';
+  }
+  function sigClass(v, good, ok) {
+    if (v == null || isNaN(v)) return '';
+    return v >= good ? 'sig-good' : v >= ok ? 'sig-ok' : 'sig-bad';
+  }
+
+  // Click-to-copy for MAC addresses
+  document.querySelectorAll('.copy-btn').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var value = el.getAttribute('data-copy');
+      if (!value) return;
+      var done = function () {
+        var original = el.textContent;
+        el.textContent = 'Copied!';
+        setTimeout(function () { el.textContent = original; }, 900);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = value; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  function errorBox(err, which) {
+    var msg = err && err.auth
+      ? 'Login rejected — the admin password on the ' + which + ' CPE does not match CPE_ADMIN_PASSWORD (or CPE_' + which.toUpperCase() + '_PASSWORD) in .env.'
+      : (err && err.message) || 'Unreachable.';
+    return '<div class="error"><strong>' + (err && err.auth ? 'Auth failed.' : 'Offline.') + '</strong> ' + esc(msg) + '</div>';
+  }
+
+  function renderOutdoor(d) {
+    var pill = document.getElementById('pill-outdoor');
+    var body = document.getElementById('outdoor-body');
+    if (!d.online) { pill.textContent = 'OFFLINE'; pill.className = 'badge badge-disabled'; body.innerHTML = errorBox(d.error, 'outdoor'); return; }
+    pill.textContent = 'ONLINE'; pill.className = 'badge badge-active';
+    var s = d.signal || {}, t = d.throughput || {};
+    body.innerHTML =
+      '<div class="sig-grid">' +
+        '<div class="sig ' + sigClass(parseFloat(s.rsrp), -100, -110) + '"><span class="sig-label">RSRP</span><span class="sig-val">' + (s.rsrp != null && s.rsrp !== '' ? esc(s.rsrp) + ' dBm' : '—') + '</span></div>' +
+        '<div class="sig ' + sigClass(parseFloat(s.rsrq), -10, -15) + '"><span class="sig-label">RSRQ</span><span class="sig-val">' + (s.rsrq != null && s.rsrq !== '' ? esc(s.rsrq) + ' dB' : '—') + '</span></div>' +
+        '<div class="sig ' + sigClass(parseFloat(s.sinr), 13, 5) + '"><span class="sig-label">SINR</span><span class="sig-val">' + (s.sinr != null && s.sinr !== '' ? esc(s.sinr) + ' dB' : '—') + '</span></div>' +
+        '<div class="sig"><span class="sig-label">RSSI</span><span class="sig-val">' + (s.rssi != null && s.rssi !== '' ? esc(s.rssi) + ' dBm' : '—') + '</span></div>' +
+      '</div>' +
+      '<div class="thr-row">' +
+        (typeof t.downloadMbps === 'number'
+          ? '<div class="thr down"><span class="thr-label">▼ Download</span><span class="thr-val">' + fmtRate(Number(t.downloadMbps) || 0) + '</span></div>' +
+            '<div class="thr up"><span class="thr-label">▲ Upload</span><span class="thr-val">' + fmtRate(Number(t.uploadMbps) || 0) + '</span></div>'
+          : '<div class="thr" style="grid-column: 1 / -1;"><span class="thr-label">Live throughput</span><span class="hint">Needs a successful CPE login (wrong or missing CPE_OUTDOOR_PASSWORD) — signal readings are unaffected.</span></div>') +
+      '</div>' +
+      '<p class="hint">Network: ' + esc(s.networkType || '—') + ' &middot; Signal bars: ' + esc(s.signalBar == null ? '—' : s.signalBar) + '/5' + (s.band ? ' &middot; Band/Channel: ' + esc(s.band) : '') + '</p>';
+  }
+
+  function renderIndoor(d) {
+    var pill = document.getElementById('pill-indoor');
+    var body = document.getElementById('indoor-body');
+    if (!d.online) { pill.textContent = 'OFFLINE'; pill.className = 'badge badge-disabled'; body.innerHTML = errorBox(d.error, 'indoor'); return; }
+    pill.textContent = 'ONLINE'; pill.className = 'badge badge-active';
+    var st = d.stations || [];
+    var html = '<h3 class="sub">Connected devices (' + st.length + ')</h3>';
+    if (st.length) {
+      html += '<table class="tight"><thead><tr><th>Name</th><th>IP</th><th>MAC</th></tr></thead><tbody>';
+      st.forEach(function (h) {
+        html += '<tr><td>' + esc(h.name || 'Unknown') + '</td><td>' + esc(h.ip || '—') + '</td><td><code class="mac-code">' + esc(h.mac || '') + '</code></td></tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<p class="hint">No devices currently connected.</p>';
+    }
+    html += '<h3 class="sub">MAC block list (' + (d.blackList || []).length + ')</h3>';
+    if ((d.blackList || []).length) {
+      html += '<p>' + d.blackList.map(function (m) { return '<code class="mac-code">' + esc(m) + '</code>'; }).join(' ') + '</p>';
+    } else {
+      html += '<p class="hint">Empty — no MACs are blocked.</p>';
+    }
+    body.innerHTML = html;
+  }
+
+  var busy = false;
+  function poll() {
+    if (busy) return;
+    busy = true;
+    fetch('/cpe/status')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var live = document.getElementById('cpe-live');
+        if (live) live.style.display = 'none';
+        renderOutdoor(data.outdoor || { online: false });
+        renderIndoor(data.indoor || { online: false });
+      })
+      .catch(function () {
+        var live = document.getElementById('cpe-live');
+        if (live) live.innerHTML = '<div class="error">Could not reach the management server.</div>';
+      })
+      .finally(function () { busy = false; });
+  }
+
+  document.getElementById('refresh-status').addEventListener('click', poll);
+
+  // Outdoor restart — double confirmation, then report.
+  document.getElementById('reboot-outdoor').addEventListener('click', function () {
+    if (!confirm('Restart the OUTDOOR CPE now? Everyone will lose internet for 1–2 minutes.')) return;
+    if (!confirm('Are you sure? This reboots the upstream antenna.')) return;
+    var btn = this, msg = document.getElementById('reboot-msg');
+    btn.disabled = true;
+    msg.textContent = 'Sending command…';
+    fetch('/cpe/outdoor/reboot', { method: 'POST' })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+      .then(function (res) {
+        msg.textContent = res.body.message || (res.ok ? 'Reboot sent.' : 'Failed.');
+        msg.className = res.ok ? 'hint reboot-ok' : 'hint text-danger';
+      })
+      .catch(function () { msg.textContent = 'Request failed — check the server connection.'; msg.className = 'hint text-danger'; })
+      .finally(function () { btn.disabled = false; });
+  });
+
+  poll();
+  setInterval(poll, 10000); // live rates refresh every 10s
+})();
+</script>
+<%- include('../partials/footer') %>

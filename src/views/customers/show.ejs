@@ -1,0 +1,93 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1><%= customer.name %></h1>
+    <span class="badge <%= customer.account_status === 'ACTIVE' ? 'badge-active' : 'badge-disabled' %>">
+      <%= customer.account_status %>
+    </span>
+  </div>
+  <div class="page-actions">
+    <a class="btn-secondary" href="/customers/<%= customer.id %>/edit">Edit Customer</a>
+    <a class="cta" href="/payments/new?customer_id=<%= customer.id %>">+ Record Payment</a>
+  </div>
+</div>
+
+<section class="grid-2">
+  <div>
+    <h2>Profile</h2>
+    <table class="kv">
+      <tr><th>Phone</th><td><a href="tel:<%= customer.phone_number %>"><%= customer.phone_number %></a></td></tr>
+      <tr><th>Room</th><td><%= customer.room_identifier || '—' %></td></tr>
+      <tr><th>Device</th><td><%= customer.device_name || '—' %></td></tr>
+      <tr>
+        <th>MAC Address</th>
+        <td>
+          <% if (customer.mac_address) { %>
+            <code class="mac-code"><%= customer.mac_address %></code>
+          <% } else { %>
+            —
+          <% } %>
+        </td>
+      </tr>
+      <tr><th>Status</th><td><%= customer.account_status %></td></tr>
+    </table>
+  </div>
+
+  <div>
+    <h2>Current Subscription</h2>
+    <% if (activeSubscription) { %>
+    <table class="kv">
+      <tr><th>Package</th><td><%= activeSubscription.package_name_snapshot %></td></tr>
+      <tr><th>Start (Nairobi)</th><td><%= formatDateTime(activeSubscription.start_time) %></td></tr>
+      <tr><th>Expires (Nairobi)</th><td><strong><%= formatDateTime(activeSubscription.expiry_time) %></strong></td></tr>
+      <tr><th>Status</th><td><span class="badge badge-active"><%= activeSubscription.status %></span></td></tr>
+    </table>
+    <% } else { %>
+      <p class="empty">No active subscription.</p>
+    <% } %>
+
+    <h2>Financial Summary</h2>
+    <table class="kv">
+      <tr><th>Total Paid</th><td>KSh <%= totals.total_paid %></td></tr>
+      <tr><th>Payments</th><td><%= totals.payment_count %></td></tr>
+      <tr><th>Last Payment</th><td><%= formatDateTime(totals.last_payment) %></td></tr>
+    </table>
+  </div>
+</section>
+
+<h2>Payment History</h2>
+<table>
+  <thead><tr><th>Date (Nairobi)</th><th>Amount</th><th>Airtel Reference</th><th>Status</th></tr></thead>
+  <tbody>
+    <% payments.forEach(function(p) { %>
+    <tr>
+      <td><%= formatDateTime(p.paid_at) %></td>
+      <td>KSh <%= p.amount %></td>
+      <td><code><%= p.reference_code %></code></td>
+      <td><%= p.status %></td>
+    </tr>
+    <% }) %>
+    <% if (payments.length === 0) { %><tr><td colspan="4" class="empty">No payments recorded.</td></tr><% } %>
+  </tbody>
+</table>
+
+<h2>Subscription History</h2>
+<table>
+  <thead><tr><th>Package</th><th>Start (Nairobi)</th><th>Expiry (Nairobi)</th><th>Status</th></tr></thead>
+  <tbody>
+    <% subscriptionHistory.forEach(function(s) { %>
+    <tr>
+      <td><%= s.package_name_snapshot %></td>
+      <td><%= formatDateTime(s.start_time) %></td>
+      <td><%= formatDateTime(s.expiry_time) %></td>
+      <td>
+        <span class="badge <%= s.status === 'ACTIVE' ? 'badge-active' : (s.status === 'EXPIRED' ? 'badge-expired' : '') %>">
+          <%= s.status %>
+        </span>
+      </td>
+    </tr>
+    <% }) %>
+    <% if (subscriptionHistory.length === 0) { %><tr><td colspan="4" class="empty">No subscriptions yet.</td></tr><% } %>
+  </tbody>
+</table>
+<%- include('../partials/footer') %>

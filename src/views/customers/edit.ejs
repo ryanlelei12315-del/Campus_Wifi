@@ -1,0 +1,22 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <h1>Edit Customer: <%= customer.name %></h1>
+  <a href="/customers/<%= customer.id %>">&larr; Back to Customer</a>
+</div>
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+<form action="/customers/<%= customer.id %>" method="post" class="form">
+  <label>Name<input type="text" name="name" value="<%= customer.name || '' %>" required /></label>
+  <label>Phone number<input type="tel" name="phone_number" value="<%= customer.phone_number || '' %>" required /></label>
+  <label>Room / hostel identifier<input type="text" name="room_identifier" value="<%= customer.room_identifier || '' %>" placeholder="e.g. Room 4B" /></label>
+  <label>Device name<input type="text" name="device_name" value="<%= customer.device_name || '' %>" placeholder="e.g. Ryan's Laptop" /></label>
+  <label>MAC address<input type="text" name="mac_address" value="<%= customer.mac_address || '' %>" placeholder="AA:BB:CC:DD:EE:FF" /></label>
+  <label>Account status
+    <select name="account_status">
+      <option value="ACTIVE" <%= customer.account_status === 'ACTIVE' ? 'selected' : '' %>>ACTIVE</option>
+      <option value="DISABLED" <%= customer.account_status === 'DISABLED' ? 'selected' : '' %>>DISABLED</option>
+    </select>
+  </label>
+  <button type="submit">Update Customer</button>
+</form>
+<%- include('../partials/footer') %>
+
