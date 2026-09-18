@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { recordPayment, PaymentError } = require('../services/paymentService');
+const { syncQuietly } = require('../services/subscriberSync');
 
 const router = express.Router();
 
@@ -38,6 +39,9 @@ router.post('/', (req, res) => {
       amount: Number(amount),
       referenceCode: reference_code,
     });
+    // A payment moves the customer's access window, so refresh their alert row
+    // right away — this re-arms the 30-minute expiry warning for the new cycle.
+    syncQuietly('payment');
     res.redirect(`/customers/${customer_id}`);
   } catch (err) {
     if (err instanceof PaymentError) {

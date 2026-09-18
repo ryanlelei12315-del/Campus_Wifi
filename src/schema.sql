@@ -72,6 +72,24 @@ CREATE TABLE IF NOT EXISTS expenses (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- WIFI SUBSCRIBERS (denormalized "hot table" the WhatsApp alert scheduler reads;
+-- derived from the ledger by services/subscriberSync.js. customer_id is added
+-- by a migration in db.js for databases created before that column existed.)
+CREATE TABLE IF NOT EXISTS wifi_subscribers (
+  mac_address TEXT PRIMARY KEY,
+  customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+  customer_name TEXT NOT NULL,
+  phone_number TEXT NOT NULL,
+  amount_paid INTEGER NOT NULL DEFAULT 0,
+  start_time TEXT,
+  expiry_time TEXT,
+  warning_sent INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'Expired'
+      CHECK (status IN ('Active','Expired')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_subscriptions_customer ON subscriptions(customer_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status_expiry ON subscriptions(status, expiry_time);
 CREATE INDEX IF NOT EXISTS idx_payments_customer ON payments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_wifi_subscribers_customer ON wifi_subscribers(customer_id);

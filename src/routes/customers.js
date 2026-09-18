@@ -1,19 +1,9 @@
 const express = require('express');
 const db = require('../db');
+const { normalizeMac } = require('../utils/normalizeMac');
 const { listSubscriptionHistoryForCustomer, getActiveSubscriptionForCustomer } = require('../services/subscriptionService');
 
 const router = express.Router();
-
-function normalizeMac(rawMac) {
-  if (!rawMac) return null;
-  const cleaned = String(rawMac).trim().toUpperCase();
-  if (!cleaned) return null;
-  const hexOnly = cleaned.replace(/[^0-9A-F]/g, '');
-  if (hexOnly.length === 12) {
-    return hexOnly.match(/.{1,2}/g).join(':');
-  }
-  return cleaned;
-}
 
 router.get('/', (req, res) => {
   const customers = db.prepare('SELECT * FROM customers ORDER BY created_at DESC').all();

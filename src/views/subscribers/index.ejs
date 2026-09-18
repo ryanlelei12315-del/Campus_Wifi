@@ -1,0 +1,141 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1>WiFi Billing</h1>
+    <p class="hint">WhatsApp expiry warnings fire 30 minutes before expiry; expiration notices and the terminal CPE disconnect request fire on lapse — scanned every 60s.</p>
+  </div>
+</div>
+
+<% if (error) { %><div class="error"><%= error %></div><% } %>
+<% if (success) { %><div class="success"><%= success %></div><% } %>
+
+<% if (!whatsappConfigured) { %>
+<div class="error">
+  <strong>WhatsApp is not connected — no alert will actually be delivered.</strong>
+  EVOLUTION_API_URL, EVOLUTION_API_KEY and EVOLUTION_INSTANCE_NAME are empty in <code>.env</code>,
+  so the scheduler logs <code>[WHATSAPP:SKIPPED]</code> instead of sending. Start the Evolution API
+  container, scan the pairing QR, then put its URL, global API key and instance name in <code>.env</code>
+  and restart this app.
+</div>
+<% } %>
+
+<div class="coverage-panel">
+  <div class="coverage-panel-head">
+    <div>
+      <h2>Ledger Sync</h2>
+      <p class="hint">
+        This table drives the WhatsApp scheduler. Sync it from the real billing ledger
+        (customers + M-PESA payments + subscriptions):
+        <strong><%= coverage.eligible.length %></strong> of
+        <strong><%= coverage.totalCustomers %></strong> customer(s) can currently be alerted.
+      </p>
+    </div>
+    <form method="post" action="/subscribers/sync" class="inline-form">
+      <button type="submit" class="cta">Sync from billing ledger</button>
+    </form>
+  </div>
+
+  <% if (coverage.blocked.length > 0) { %>
+  <details class="coverage-blocked">
+    <summary>
+      <%= coverage.blocked.length %> customer(s) skipped — the alert could not be actionable
+    </summary>
+    <ul>
+      <% coverage.blocked.forEach(function (b) { %>
+      <li>
+        <a href="/customers/<%= b.customer.id %>/edit"><strong><%= b.customer.name %></strong></a>
+        <span class="muted">(<%= b.customer.phone_number %>)</span>
+        — <%= b.blockers.join('; ') %>
+      </li>
+      <% }) %>
+    </ul>
+    <p class="hint">
+      Fill in the missing field on the customer record and sync again — the scheduler can only
+      WhatsApp a full number, and the disconnect request needs a MAC to act on.
+    </p>
+  </details>
+  <% } else { %>
+  <p class="hint">Every customer in the ledger has a full phone number and a MAC — all are alertable.</p>
+  <% } %>
+</div>
+
+<h2>Add Subscriber</h2>
+<form method="post" action="/subscribers" class="sub-form">
+  <label>
+    Customer Name
+    <input type="text" name="customer_name" maxlength="60" placeholder="e.g. Jane Wanjiku" value="<%= formData.customer_name || '' %>" required />
+  </label>
+  <label>
+    Phone Number (WhatsApp)
+    <input type="text" name="phone_number" maxlength="20" placeholder="0712 345 678" value="<%= formData.phone_number || '' %>" required />
+  </label>
+  <label>
+    MAC Address
+    <input type="text" name="mac_address" maxlength="20" placeholder="AA:BB:CC:DD:EE:FF" value="<%= formData.mac_address || '' %>" required />
+  </label>
+  <label>
+    Package
+    <select name="package_key" required>
+      <option value="" disabled <%= !formData.package_key ? 'selected' : '' %>>Select package…</option>
+      <% Object.entries(packages).forEach(function (entry) { var key = entry[0], pkg = entry[1]; %>
+      <option value="<%= key %>" <%= formData.package_key === key ? 'selected' : '' %>>
+        <%= pkg.label %> — KSh <%= pkg.price %>
+      </option>
+      <% }) %>
+    </select>
+  </label>
+  <button type="submit" class="cta">Add Subscriber</button>
+</form>
+
+<h2>Subscribers (<%= subscribers.length %>)</h2>
+<div class="table-scroll">
+  <table class="subscribers-table">
+    <thead>
+      <tr>
+        <th>#</th><th>Name</th><th>Phone</th><th>MAC Address</th><th>Paid</th>
+        <th>Started</th><th>Expires</th><th>Warning</th><th>Status</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% subscribers.forEach(function (s) { %>
+      <tr class="<%= s.status === 'Active' ? 'row-active' : 'row-expired' %>">
+        <td><%= s.id %></td>
+        <td>
+          <strong><%= s.customer_name %></strong>
+          <% if (s.customer_id) { %>
+          <span class="badge badge-ledger" title="Derived from the billing ledger — customer #<%= s.customer_id %>">ledger</span>
+          <% } %>
+        </td>
+        <td><%= s.phone_number %></td>
+        <td><code class="mac-code"><%= s.mac_address %></code></td>
+        <td>KSh <%= s.amount_paid %></td>
+        <td><%= formatDateTime(s.start_time) %></td>
+        <td><%= formatDateTime(s.expiry_time) %></td>
+        <td>
+          <% if (s.warning_sent) { %><span class="badge badge-expired">Warned</span>
+          <% } else if (s.status === 'Active') { %><span class="muted">—</span>
+          <% } else { %><span class="muted">—</span><% } %>
+        </td>
+        <td>
+          <% if (s.status === 'Active') { %><span class="badge badge-active">Active</span>
+          <% } else { %><span class="badge badge-disabled">Expired</span><% } %>
+        </td>
+        <td>
+          <% if (s.customer_id) { %>
+          <a class="btn-secondary btn-small" href="/payments/new?customer_id=<%= s.customer_id %>"
+             title="Ledger row — record the M-PESA payment on the customer to extend this">Record payment</a>
+          <% } else { %>
+          <form method="post" action="/subscribers/<%= s.id %>/renew" class="inline-form">
+            <button type="submit" class="btn-secondary btn-small" title="Re-charge the same package and extend from the current expiry">Renew</button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+      <% }) %>
+      <% if (subscribers.length === 0) { %>
+      <tr><td colspan="10" class="empty">No subscribers yet — sync from the billing ledger, or add one manually above.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

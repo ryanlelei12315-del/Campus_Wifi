@@ -10,6 +10,7 @@ require('dotenv').config();
 const db = require('./db');
 const { toSqliteUtc } = require('./utils/formatDate');
 const { sweepExpired } = require('./services/subscriptionService');
+const { syncQuietly } = require('./services/subscriberSync');
 
 // ---------------------------------------------------------------------------
 // Raw transaction data, transcribed from the M-PESA SMS messages.
@@ -41,6 +42,13 @@ const TRANSACTIONS = [
   { code: 'UIEMR6IDEP', name: 'Brandon Lucas',     phone: '0769***478', amount: 30,  at: '2026-09-14T21:04:00+03:00' },
   { code: 'UIEPI6ECB2', name: 'Franzen Dixon',     phone: '0718***792', amount: 30,  at: '2026-09-14T22:09:00+03:00' },
   { code: 'UIFAB6PWPF', name: 'Hosea Mogeni',      phone: '0707***534', amount: 30,  at: '2026-09-15T07:24:00+03:00' },
+  // Supplied by the admin after the initial batch (transcribed from the SMS bodies
+  // that were originally pasted into the payment form).
+  { code: 'UIF8G73VS8', name: 'Nyambane Kwamboka', phone: '0111***156', amount: 30,  at: '2026-09-15T22:32:00+03:00' },
+  { code: 'UIFFT6XJD6', name: 'Lenza Ongoro',    phone: '0722766196', amount: 30,  at: '2026-09-15T22:44:00+03:00' },
+  { code: 'UIGAB6U91S', name: 'Hosea Mogeni',     phone: '0707***534', amount: 30,  at: '2026-09-16T07:50:00+03:00' },
+  { code: 'UIG4V6OK9N', name: 'Austin Kagwi',     phone: '0717***460', amount: 30,  at: '2026-09-16T12:15:00+03:00' },
+  { code: 'UIH8G78V6D', name: 'Nyambane Kwamboka', phone: '0111***156', amount: 30,  at: '2026-09-17T08:42:00+03:00' },
 ];
 
 module.exports = { TRANSACTIONS };
@@ -144,6 +152,9 @@ function main() {
     sweepExpired();
   });
   run();
+
+  // Make the imported ledger visible to the WhatsApp alert scheduler.
+  syncQuietly('import-mpesa');
 
   console.log(`Backfill complete: ${insertedPayments} payment(s) recorded, ${insertedCustomers} new customer(s).`);
   console.log('Per-customer summary:');

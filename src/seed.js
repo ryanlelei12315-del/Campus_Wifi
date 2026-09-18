@@ -21,10 +21,10 @@ function seedAdmin() {
 // duration_hours), missing tiers are inserted, and nothing is ever deleted.
 const PACKAGES = [
   { name: '3 Hour', price: 10, duration_hours: 3 },
-  { name: '6 Hours', price: 20, duration_hours: 6 },
+  { name: '12 Hours', price: 20, duration_hours: 12 },
   { name: '24 Hours', price: 30, duration_hours: 24 },
   { name: '7 Days', price: 150, duration_hours: 24 * 7 },
-  { name: '30 Days', price: 580, duration_hours: 24 * 30 },
+  { name: '30 Days', price: 500, duration_hours: 24 * 30 },
 ];
 
 function seedPackages() {

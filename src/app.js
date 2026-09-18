@@ -11,6 +11,7 @@ const customerRoutes = require('./routes/customers');
 const packageRoutes = require('./routes/packages');
 const paymentRoutes = require('./routes/payments');
 const cpeRoutes = require('./routes/cpe');
+const subscriberRoutes = require('./routes/subscribers');
 
 const app = express();
 
@@ -45,5 +46,6 @@ app.use('/customers', customerRoutes);
 app.use('/packages', packageRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/cpe', cpeRoutes);
+app.use('/subscribers', subscriberRoutes);
 
 module.exports = app;
