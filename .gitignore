@@ -4,6 +4,7 @@ node_modules/
 
 # Environment / secrets
 .env
+.env
 
 # SQLite database (runtime data — never commit)
 data/
