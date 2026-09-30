@@ -2,59 +2,11 @@ const express = require('express');
 const db = require('../db');
 const { recordPayment, PaymentError } = require('../services/paymentService');
 const { syncQuietly } = require('../services/subscriberSync');
-
 const router = express.Router();
-
-router.get('/new', (req, res) => {
-  const customers = db.prepare('SELECT id, name, phone_number FROM customers ORDER BY name ASC').all();
-  const packages = db.prepare('SELECT * FROM packages WHERE is_active = 1 ORDER BY duration_hours ASC').all();
-  res.render('payments/new', {
-    customers,
-    packages,
-    error: null,
-    prefillCustomerId: req.query.customer_id || null,
-    formData: {},
-  });
-});
-
-router.post('/', (req, res) => {
-  const { customer_id, package_id, amount, reference_code } = req.body;
-  const customers = db.prepare('SELECT id, name, phone_number FROM customers ORDER BY name ASC').all();
-  const packages = db.prepare('SELECT * FROM packages WHERE is_active = 1 ORDER BY duration_hours ASC').all();
-
-  const formData = {
-    customer_id,
-    package_id,
-    amount,
-    reference_code,
-  };
-
-  try {
-    if (!customer_id || !package_id || !amount || !reference_code) {
-      throw new PaymentError('All fields are required.');
-    }
-    recordPayment({
-      customerId: Number(customer_id),
-      packageId: Number(package_id),
-      amount: Number(amount),
-      referenceCode: reference_code,
-    });
-    // A payment moves the customer's access window, so refresh their alert row
-    // right away — this re-arms the 30-minute expiry warning for the new cycle.
-    syncQuietly('payment');
-    res.redirect(`/customers/${customer_id}`);
-  } catch (err) {
-    if (err instanceof PaymentError) {
-      return res.render('payments/new', {
-        customers,
-        packages,
-        error: err.message,
-        prefillCustomerId: customer_id,
-        formData,
-      });
-    }
-    throw err;
-  }
-});
-
+function renderNew(res, { error = null, prefillCustomerId = null, formData = {} } = {}) { const customers = db.prepare('SELECT id, name, phone_number FROM customers ORDER BY name ASC').all(); const packages = db.prepare('SELECT * FROM packages WHERE is_active = 1 ORDER BY duration_hours ASC').all(); return res.render('payments/new', { customers, packages, error, prefillCustomerId, formData }); }
+router.get('/', (req, res) => { const payments = db.prepare('SELECT p.*, c.name AS customer_name, pkg.name AS package_name FROM payments p JOIN customers c ON c.id = p.customer_id JOIN packages pkg ON pkg.id = p.package_id ORDER BY p.paid_at DESC, p.id DESC').all(); res.render('payments/list', { payments }); });
+router.get('/new', (req, res) => renderNew(res, { prefillCustomerId: req.query.customer_id || null }));
+router.post('/', (req, res) => { const { customer_id, package_id, amount, reference_code } = req.body; const formData = { customer_id, package_id, amount, reference_code }; try { if (!customer_id || !package_id || !amount || !reference_code) throw new PaymentError('All fields are required.'); recordPayment({ customerId: Number(customer_id), packageId: Number(package_id), amount: Number(amount), referenceCode: reference_code }); syncQuietly('payment'); res.redirect('/customers/' + customer_id); } catch (err) { if (err instanceof PaymentError) return renderNew(res, { error: err.message, prefillCustomerId: customer_id, formData }); throw err; } });
+router.post('/:id/cancel', (req, res) => { const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(req.params.id); if (!payment) return res.status(404).send('Transaction not found'); if (!['VERIFIED', 'PENDING'].includes(payment.status)) return res.status(400).send('Only active transactions can be cancelled.'); db.prepare("UPDATE payments SET status = 'REVERSED' WHERE id = ?").run(payment.id); syncQuietly('payment-cancelled'); res.redirect(req.get('Referrer') || '/payments'); });
+router.post('/:id/delete', (req, res) => { const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(req.params.id); if (!payment) return res.status(404).send('Transaction not found'); db.prepare('DELETE FROM payments WHERE id = ?').run(payment.id); syncQuietly('payment-deleted'); res.redirect(req.get('Referrer') || '/payments'); });
 module.exports = router;
