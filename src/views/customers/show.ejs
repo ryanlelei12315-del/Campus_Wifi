@@ -57,17 +57,23 @@
 
 <h2>Payment History</h2>
 <table>
-  <thead><tr><th>Date (Nairobi)</th><th>Amount</th><th>Airtel Reference</th><th>Status</th></tr></thead>
+  <thead><tr><th>Date (Nairobi)</th><th>Amount</th><th>Airtel Reference</th><th>Status</th><th>Actions</th></tr></thead>
   <tbody>
     <% payments.forEach(function(p) { %>
     <tr>
       <td><%= formatDateTime(p.paid_at) %></td>
       <td>KSh <%= p.amount %></td>
       <td><code><%= p.reference_code %></code></td>
-      <td><%= p.status %></td>
+      <td><span class="badge <%= p.status === 'VERIFIED' ? 'badge-active' : (p.status === 'REVERSED' || p.status === 'REFUNDED' ? 'badge-disabled' : '') %>"><%= p.status %></span></td>
+      <td>
+        <% if (p.status === 'VERIFIED' || p.status === 'PENDING') { %>
+        <form method="post" action="/payments/<%= p.id %>/cancel" class="inline-form" onsubmit="return confirm('Cancel this transaction?');"><button type="submit" class="btn-secondary btn-small">Cancel</button></form>
+        <% } %>
+        <form method="post" action="/payments/<%= p.id %>/delete" class="inline-form" onsubmit="return confirm('Permanently delete this transaction?');"><button type="submit" class="btn-secondary btn-small">Delete</button></form>
+      </td>
     </tr>
     <% }) %>
-    <% if (payments.length === 0) { %><tr><td colspan="4" class="empty">No payments recorded.</td></tr><% } %>
+    <% if (payments.length === 0) { %><tr><td colspan="5" class="empty">No payments recorded.</td></tr><% } %>
   </tbody>
 </table>
 
