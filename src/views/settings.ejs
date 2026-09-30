@@ -1,0 +1,11 @@
+<%- include('partials/header') %>
+<div class="page-head"><div><h1>Admin Settings</h1><p class="hint">Change the login username and/or password.</p></div></div>
+<% if (error) { %><p class="error"><%= error %></p><% } %><% if (success) { %><p class="success"><%= success %></p><% } %>
+<form action="/settings" method="post" class="form">
+<label>Username<input type="text" name="username" value="<%= admin.username %>" minlength="3" required /></label>
+<label>Current password<input type="password" name="current_password" autocomplete="current-password" required /></label>
+<label>New password <span class="muted">(leave blank to keep current)</span><input type="password" name="new_password" minlength="8" autocomplete="new-password" /></label>
+<label>Confirm new password<input type="password" name="confirm_password" minlength="8" autocomplete="new-password" /></label>
+<button type="submit" class="cta">Save Credentials</button>
+</form>
+<%- include('partials/footer') %>
