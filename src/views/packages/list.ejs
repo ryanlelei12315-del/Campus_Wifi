@@ -1,17 +1,6 @@
 <%- include('../partials/header') %>
-<h1>Packages</h1>
-<table>
-  <thead><tr><th>Name</th><th>Price</th><th>Duration (hrs)</th><th>Status</th></tr></thead>
-  <tbody>
-    <% packages.forEach(function(p) { %>
-    <tr>
-      <td><%= p.name %></td>
-      <td>KSh <%= p.price %></td>
-      <td><%= p.duration_hours %></td>
-      <td><%= p.is_active ? 'Active' : 'Disabled' %></td>
-    </tr>
-    <% }) %>
-  </tbody>
-</table>
-<p class="hint">Editing packages from the UI isn't built yet — for now, edit rows directly in the database, or re-run <code>npm run seed</code> on a fresh database.</p>
+<div class="page-head"><div><h1>Packages</h1><p class="hint">Create, edit, deactivate or remove Wi-Fi packages.</p></div><a class="cta" href="/packages/new">+ New Package</a></div>
+<table><thead><tr><th>Name</th><th>Price</th><th>Duration (hrs)</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+<% packages.forEach(function(p) { %><tr><td><strong><%= p.name %></strong></td><td>KSh <%= p.price %></td><td><%= p.duration_hours %></td><td><span class="badge <%= p.is_active ? 'badge-active' : 'badge-disabled' %>"><%= p.is_active ? 'Active' : 'Disabled' %></span></td><td><a class="btn-secondary btn-small" href="/packages/<%= p.id %>/edit">Edit</a> <form method="post" action="/packages/<%= p.id %>/delete" class="inline-form" onsubmit="return confirm('Delete this package? If it has history, it will be disabled instead.');"><button type="submit" class="btn-secondary btn-small">Delete / Disable</button></form></td></tr><% }) %>
+<% if (packages.length === 0) { %><tr><td colspan="5" class="empty">No packages configured.</td></tr><% } %></tbody></table>
 <%- include('../partials/footer') %>
