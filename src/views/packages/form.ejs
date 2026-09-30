@@ -1,0 +1,11 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1><%= mode === 'create' ? 'Create Package' : 'Edit Package' %></h1><p class="hint">Changes affect new payments; historical snapshots remain unchanged.</p></div><a href="/packages">&larr; Back</a></div>
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+<form action="<%= mode === 'create' ? '/packages' : '/packages/' + package.id %>" method="post" class="form">
+  <label>Package name<input type="text" name="name" value="<%= package.name || '' %>" required /></label>
+  <label>Price (KSh)<input type="number" name="price" min="0" step="1" value="<%= package.price ?? '' %>" required /></label>
+  <label>Duration (hours)<input type="number" name="duration_hours" min="0.5" step="0.5" value="<%= package.duration_hours ?? '' %>" required /></label>
+  <% if (mode === 'edit') { %><label>Status<select name="is_active"><option value="1" <%= package.is_active ? 'selected' : '' %>>Active</option><option value="0" <%= !package.is_active ? 'selected' : '' %>>Disabled</option></select></label><% } %>
+  <button type="submit" class="cta"><%= mode === 'create' ? 'Create Package' : 'Save Changes' %></button>
+</form>
+<%- include('../partials/footer') %>
