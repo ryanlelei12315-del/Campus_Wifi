@@ -31,6 +31,12 @@ function addColumnIfMissing(table, column, definition) {
 // they were derived from (see services/subscriberSync.js). NULL for hand-added rows.
 addColumnIfMissing('wifi_subscribers', 'customer_id', 'INTEGER REFERENCES customers(id) ON DELETE SET NULL');
 
+// Seed the current month's fixed operating expense once.
+const monthlyExpense = db.prepare("SELECT id FROM expenses WHERE description = 'Campus WiFi monthly operating expense' AND strftime('%Y-%m', spent_at) = strftime('%Y-%m', 'now') LIMIT 1").get();
+if (!monthlyExpense) {
+  db.prepare("INSERT INTO expenses (description, amount, category, spent_at) VALUES (?, 1999, 'Operating Costs', datetime('now'))").run('Campus WiFi monthly operating expense');
+}
+
 db.exec(
   'CREATE INDEX IF NOT EXISTS idx_wifi_subscribers_customer ON wifi_subscribers(customer_id)'
 );
