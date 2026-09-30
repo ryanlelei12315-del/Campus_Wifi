@@ -1,0 +1,14 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Transactions</h1><p class="hint">Cancel preserves the transaction history; Delete permanently removes it.</p></div><a class="cta" href="/payments/new">+ Add Payment</a></div>
+<table>
+<thead><tr><th>Date</th><th>Customer</th><th>Package</th><th>Amount</th><th>Reference</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>
+<% payments.forEach(function(p) { %><tr>
+<td><%= formatDateTime(p.paid_at) %></td><td><a href="/customers/<%= p.customer_id %>"><%= p.customer_name %></a></td><td><%= p.package_name %></td><td>KSh <%= p.amount %></td><td><code><%= p.reference_code %></code></td>
+<td><span class="badge <%= p.status === 'VERIFIED' ? 'badge-active' : (p.status === 'REVERSED' || p.status === 'REFUNDED' ? 'badge-disabled' : '') %>"><%= p.status %></span></td>
+<td><% if (p.status === 'VERIFIED' || p.status === 'PENDING') { %><form method="post" action="/payments/<%= p.id %>/cancel" class="inline-form" onsubmit="return confirm('Cancel this transaction?');"><button type="submit" class="btn-secondary btn-small">Cancel</button></form><% } %>
+<form method="post" action="/payments/<%= p.id %>/delete" class="inline-form" onsubmit="return confirm('Permanently delete this transaction? This cannot be undone.');"><button type="submit" class="btn-secondary btn-small">Delete</button></form></td>
+</tr><% }) %>
+<% if (payments.length === 0) { %><tr><td colspan="7" class="empty">No transactions recorded.</td></tr><% } %>
+</tbody></table>
+<%- include('../partials/footer') %>
